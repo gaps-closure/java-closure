@@ -6,7 +6,6 @@
 ################################################################################
 cd ~/gaps
 git clone ssh://git@github.com/gaps-closure/java-closure.git
-mkdir java-closure
 cd java-closure/
 
 # Make sure ant, java, mvn, g++ are installed -- install if needed
