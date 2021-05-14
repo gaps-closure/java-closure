@@ -1,0 +1,43 @@
+from java.io import FileOutputStream
+from java.io import IOException
+from java.util import Collection
+from java.lang import System
+
+from com.ibm.wala.ipa.cha import ClassHierarchyException
+from com.ibm.wala.util import CancelException
+from com.ibm.wala.util import NullProgressMonitor
+from com.ibm.wala.util.graph.GraphIntegrity import UnsoundGraphException
+
+from edu.kit.joana.api import IFCAnalysis
+from edu.kit.joana.api.lattice import BuiltinLattices
+from edu.kit.joana.api.sdg import SDGConfig
+from edu.kit.joana.api.sdg import SDGProgram
+from edu.kit.joana.api.sdg import SDGProgramPart
+from edu.kit.joana.ifc.sdg.core import SecurityNode
+from edu.kit.joana.ifc.sdg.core.violations import IViolation
+from edu.kit.joana.ifc.sdg.graph import SDGSerializer
+from edu.kit.joana.ifc.sdg.mhpoptimization import MHPType
+from edu.kit.joana.ifc.sdg.util import JavaMethodSignature
+from edu.kit.joana.util import Stubs
+
+from edu.kit.joana.wala.core.SDGBuilder import PointsToPrecision
+from edu.kit.joana.wala.core.SDGBuilder import ExceptionAnalysis
+from gnu.trove.map import TObjectIntMap
+
+from edu.kit.joana.ifc.sdg.io.dot import JoanaGraph2Dot
+
+if __name__ == '__main__':
+  classPath = "./testprog/dist/TESTPROGRAM.jar"
+  entryMethod = JavaMethodSignature.mainMethodOfClass('com.peratonlabs.closure.testprog.TestProgram')
+  config      = SDGConfig(classPath, entryMethod.toBCString(), Stubs.JRE_15)
+  config.setComputeInterferences(True)
+  config.setMhpType(MHPType.PRECISE)
+  config.setPointsToPrecision(PointsToPrecision.INSTANCE_BASED)
+  config.setExceptionAnalysis(ExceptionAnalysis.INTERPROC)
+
+  program = SDGProgram.createSDGProgram(config, System.out, NullProgressMonitor())
+  SDGSerializer.toPDGFormat(program.getSDG(), FileOutputStream('yourSDGFile.pdg'))
+  print('PDG Generated\n')
+
+  JoanaGraph2Dot.writeDotToOutputStream(program.getSDG(), FileOutputStream('yourSDGFile.dot'))
+  print('DOT Generated\n')
