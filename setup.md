@@ -26,6 +26,7 @@ git submodule update
 # export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
 # export PATH=$JAVA_HOME/bin:$PATH
 # Or copy the edited file
+mv setup_deps setup_deps.orig
 cp ../setup_deps .
 ./setup_deps 
 
