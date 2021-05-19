@@ -1,3 +1,5 @@
+from argparse import ArgumentParser
+
 from java.io import FileOutputStream
 from java.io import IOException
 from java.util import Collection
@@ -26,18 +28,41 @@ from gnu.trove.map import TObjectIntMap
 
 from edu.kit.joana.ifc.sdg.io.dot import JoanaGraph2Dot
 
-if __name__ == '__main__':
-  classPath = "./testprog/dist/TESTPROGRAM.jar"
-  entryMethod = JavaMethodSignature.mainMethodOfClass('com.peratonlabs.closure.testprog.TestProgram')
+def makeSDG(cp, em, pdg=None, dot=None):
+  classPath   = cp
+  entryMethod = JavaMethodSignature.mainMethodOfClass(em)
   config      = SDGConfig(classPath, entryMethod.toBCString(), Stubs.JRE_15)
   config.setComputeInterferences(True)
   config.setMhpType(MHPType.PRECISE)
   config.setPointsToPrecision(PointsToPrecision.INSTANCE_BASED)
   config.setExceptionAnalysis(ExceptionAnalysis.INTERPROC)
-
   program = SDGProgram.createSDGProgram(config, System.out, NullProgressMonitor())
-  SDGSerializer.toPDGFormat(program.getSDG(), FileOutputStream('yourSDGFile.pdg'))
-  print('PDG Generated\n')
+  if pdg is not None:
+    SDGSerializer.toPDGFormat(program.getSDG(), FileOutputStream(pdg))
+    print('PDG Generated\n')
+  if dot is not None:
+    JoanaGraph2Dot.writeDotToOutputStream(program.getSDG(), FileOutputStream(dot))
+    print('DOT Generated\n')
+  return program
 
-  JoanaGraph2Dot.writeDotToOutputStream(program.getSDG(), FileOutputStream('yourSDGFile.dot'))
-  print('DOT Generated\n')
+def get_args():
+  p = ArgumentParser(description='CLOSURE System Dependence Graph Builder for Java')
+  p.add_argument('-e', '--entrymethod', required=True, type=str, help='Entry Method')
+  p.add_argument('-c', '--clpath', required=True, type=str, help='Jar file for program to be analyzed')
+  p.add_argument('-p', '--pdg', help='Dump Program Dependence Graph in native format',
+                 default=False, action='store_true') 
+  p.add_argument('-P', '--pdgfile', help='PDG filename', 
+                 required=False, type=str, default='yourSDGFile.pdg')
+  p.add_argument('-d', '--dot',help='Dump Program Dependence Graph in Dot format',
+                 default=False, action='store_true') 
+  p.add_argument('-D', '--dotfile', help='DOT filename',
+                 required=False, type=str, default='yourSDGFile.dot')
+  return p.parse_args()
+  
+if __name__ == '__main__':
+  args   = get_args()
+  print('Options selected:')
+  for x in vars(args).items(): print('  %s: %s' % x)
+  pf = args.pdgfile if args.pdg else None
+  df = args.dotfile if args.dot else None
+  makeSDG(args.clpath, args.entrymethod, pdg=pf, dot=df)

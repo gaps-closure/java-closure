@@ -34,11 +34,14 @@ cp ../setup_deps .
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
 export PATH=$JAVA_HOME/bin:$PATH
 ant
+ant doc-wala
+doxygen # optional, takes a long time
 
 ################################################################################
 # Download pre-built jscheme and jython
 ################################################################################
 cd ..
+# jscheme is optional
 wget https://sourceforge.net/projects/jscheme/files/jscheme/7.2/jscheme-7.2.jar
 wget https://repo1.maven.org/maven2/org/python/jython-standalone/2.7.2/jython-standalone-2.7.2.jar
 
@@ -55,10 +58,16 @@ cd ..
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
 export PATH=$JAVA_HOME/bin:$PATH
 export CLASSPATH="joana/dist/*:jython-standalone-2.7.2.jar:jscheme-7.2.jar"
-#java -cp $CLASSPATH jscheme.REPL JoanaUsageExample.scm -main main
-java -cp $CLASSPATH org.python.util.jython JoanaUsageExample.jy
+# jscheme is optional
+java -cp $CLASSPATH jscheme.REPL JoanaUsageExample.scm -main main
+
+# Generate the SDG
+java -cp $CLASSPATH org.python.util.jython JoanaUsageExample.jy \
+  -c './testprog/dist/TESTPROGRAM.jar' \
+  -e 'com.peratonlabs.closure.testprog.example1.Example1' \
+  -p -P 'out.pdg' \
+  -d -D 'out.dot' 
 
 # Launch the viewer, open the pdg file, and interact
 java -cp $CLASSPATH edu.kit.joana.ui.ifc.sdg.graphviewer.GraphViewer 
 ```
-
