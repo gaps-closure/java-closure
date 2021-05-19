@@ -1,4 +1,4 @@
-from json                                   import loads,dumps
+from json                                   import loads,dump
 from argparse                               import ArgumentParser
 
 from java.lang                              import Class
@@ -19,25 +19,28 @@ from java.util                              import Enumeration;
 from java.util.jar                          import JarEntry;
 from java.util.jar                          import JarFile;
 
-def dumpCLE(cp, clefile):
-  jf = JarFile(cp)
-  for e in jf.entries():
-    c = e.getName()
-    if c.endswith('.class'):
-      cnm = c.replace('/','.').replace('.class','')
-      try:
-        cls = Class.forName(cnm)
-        if cls.isAnnotation():
-          for x in cls.getDeclaredAnnotations():
-            try:
-              j = loads(x.clejson())
-            except:
-              print('No valid CLE JSON for ' + x.toString())
-              continue
-            print(str(cnm))
-            print(dumps(j,indent=4,sort_keys=True))
-      except Exception as e:
+def getClasses(cp):
+  for e in JarFile(cp).entries():
+    if e.getName().endswith('.class'):
+      cnm = e.getName().replace('/','.').replace('.class','')
+      try:                   
+        yield cnm,Class.forName(cnm)
+      except Exception as e: 
         print('Error getting class ' + cnm + ':' + str(e))
+
+def dumpCLE(cp, clefile):
+  cles = []
+  for cnm,cls in getClasses(cp):
+    if cls.isAnnotation():
+      for x in cls.getDeclaredAnnotations():
+        if x.annotationType().getName().endswith('Cledef'): 
+          try:
+            j = loads(x.clejson())
+            cles.append(dict(clelabel=cnm,clejson=j))
+          except Exception as e:
+            print('CLE JSON failed for ' + x.toString())
+  with open(clefile,'w') as of: dump(cles, of, indent=2, sort_keys=True)
+  print('CLEJSON Generated\n')
 
 def makeSDG(cp, em, pdg=None, dot=None):
   classPath   = cp
