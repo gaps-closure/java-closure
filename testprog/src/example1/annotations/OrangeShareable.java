@@ -9,14 +9,14 @@ import com.peratonlabs.closure.testprog.example1.annotations.Cledef;
  
 @Target(ElementType.FIELD)
 @Retention(RetentionPolicy.RUNTIME)
-@Cledef(json = "{" + 
+@Cledef(clejson = "{" + 
                 "               \"level\":\"orange\"," + 
                 "               \"cdf\":[" + 
                 "                  {" + 
                 "                     \"remotelevel\":\"green\"," + 
                 "                     \"direction\":\"egress\"," + 
                 "                     \"guarddirective\":{" + 
-                "                        \"operation\":\"allow\"," + 
+                "                        \"operation\":\"allow\"" + 
                 "                     }" + 
                 "                  }" + 
                 "               ]" + 

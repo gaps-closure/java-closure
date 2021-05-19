@@ -57,7 +57,7 @@ cd ..
 ################################################################################
 export JAVA_HOME=/usr/lib/jvm/java-1.8.0-openjdk-amd64
 export PATH=$JAVA_HOME/bin:$PATH
-export CLASSPATH="joana/dist/*:jython-standalone-2.7.2.jar:jscheme-7.2.jar"
+export CLASSPATH="joana/dist/*:testprog/dist/*:jython-standalone-2.7.2.jar:jscheme-7.2.jar:"
 # jscheme is optional
 java -cp $CLASSPATH jscheme.REPL JoanaUsageExample.scm -main main
 
@@ -66,7 +66,8 @@ java -cp $CLASSPATH org.python.util.jython JoanaUsageExample.jy \
   -c './testprog/dist/TESTPROGRAM.jar' \
   -e 'com.peratonlabs.closure.testprog.example1.Example1' \
   -p -P 'out.pdg' \
-  -d -D 'out.dot' 
+  -d -D 'out.dot' \
+  -J 'out.clemap.json' 
 
 # Launch the viewer, open the pdg file, and interact
 java -cp $CLASSPATH edu.kit.joana.ui.ifc.sdg.graphviewer.GraphViewer 

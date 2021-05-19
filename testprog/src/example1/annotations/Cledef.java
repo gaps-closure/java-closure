@@ -9,6 +9,6 @@ import java.lang.annotation.Target;
 @Retention(RetentionPolicy.RUNTIME)
 public @interface Cledef 
 {
-    String json() default "";
+    String clejson() default "";
     boolean isFile() default false;
 }

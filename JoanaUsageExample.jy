@@ -1,32 +1,43 @@
-from argparse import ArgumentParser
+from json                                   import loads,dumps
+from argparse                               import ArgumentParser
 
-from java.io import FileOutputStream
-from java.io import IOException
-from java.util import Collection
-from java.lang import System
+from java.lang                              import Class
+from java.lang                              import System
+from java.io                                import FileOutputStream
+from com.ibm.wala.util                      import NullProgressMonitor
+from edu.kit.joana.api.sdg                  import SDGConfig
+from edu.kit.joana.api.sdg                  import SDGProgram
+from edu.kit.joana.ifc.sdg.graph            import SDGSerializer
+from edu.kit.joana.ifc.sdg.mhpoptimization  import MHPType
+from edu.kit.joana.ifc.sdg.util             import JavaMethodSignature
+from edu.kit.joana.util                     import Stubs
+from edu.kit.joana.wala.core.SDGBuilder     import PointsToPrecision
+from edu.kit.joana.wala.core.SDGBuilder     import ExceptionAnalysis
+from edu.kit.joana.ifc.sdg.io.dot           import JoanaGraph2Dot
 
-from com.ibm.wala.ipa.cha import ClassHierarchyException
-from com.ibm.wala.util import CancelException
-from com.ibm.wala.util import NullProgressMonitor
-from com.ibm.wala.util.graph.GraphIntegrity import UnsoundGraphException
+from java.util                              import Enumeration;
+from java.util.jar                          import JarEntry;
+from java.util.jar                          import JarFile;
 
-from edu.kit.joana.api import IFCAnalysis
-from edu.kit.joana.api.lattice import BuiltinLattices
-from edu.kit.joana.api.sdg import SDGConfig
-from edu.kit.joana.api.sdg import SDGProgram
-from edu.kit.joana.api.sdg import SDGProgramPart
-from edu.kit.joana.ifc.sdg.core import SecurityNode
-from edu.kit.joana.ifc.sdg.core.violations import IViolation
-from edu.kit.joana.ifc.sdg.graph import SDGSerializer
-from edu.kit.joana.ifc.sdg.mhpoptimization import MHPType
-from edu.kit.joana.ifc.sdg.util import JavaMethodSignature
-from edu.kit.joana.util import Stubs
-
-from edu.kit.joana.wala.core.SDGBuilder import PointsToPrecision
-from edu.kit.joana.wala.core.SDGBuilder import ExceptionAnalysis
-from gnu.trove.map import TObjectIntMap
-
-from edu.kit.joana.ifc.sdg.io.dot import JoanaGraph2Dot
+def dumpCLE(cp, clefile):
+  jf = JarFile(cp)
+  for e in jf.entries():
+    c = e.getName()
+    if c.endswith('.class'):
+      cnm = c.replace('/','.').replace('.class','')
+      try:
+        cls = Class.forName(cnm)
+        if cls.isAnnotation():
+          for x in cls.getDeclaredAnnotations():
+            try:
+              j = loads(x.clejson())
+            except:
+              print('No valid CLE JSON for ' + x.toString())
+              continue
+            print(str(cnm))
+            print(dumps(j,indent=4,sort_keys=True))
+      except Exception as e:
+        print('Error getting class ' + cnm + ':' + str(e))
 
 def makeSDG(cp, em, pdg=None, dot=None):
   classPath   = cp
@@ -57,12 +68,15 @@ def get_args():
                  default=False, action='store_true') 
   p.add_argument('-D', '--dotfile', help='DOT filename',
                  required=False, type=str, default='yourSDGFile.dot')
+  p.add_argument('-J', '--jsonfile', help='CLE JSON output filename', 
+                 required=False, type=str, default='yourSDGFile.clemap.json')
   return p.parse_args()
   
 if __name__ == '__main__':
   args   = get_args()
   print('Options selected:')
-  for x in vars(args).items(): print('  %s: %s' % x)
+  for x in sorted(vars(args).items()): print('  %s: %s' % x)
   pf = args.pdgfile if args.pdg else None
   df = args.dotfile if args.dot else None
   makeSDG(args.clpath, args.entrymethod, pdg=pf, dot=df)
+  dumpCLE(args.clpath, args.jsonfile)
