@@ -39,6 +39,9 @@ def collectCLE(cp):
         except Exception as e: print('CLE JSON failed for ' + y.toString())
   return cles
 
+def cleAnnotationsForNode(node, prog, clabels):
+  return [q for q in [str(x.getType().getName()).lstrip('L').replace('/','.') for x in prog.getMiscAnnotations(node)] if q in clabels]
+
 def makeSDG(cp, em):
   classPath   = cp
   entryMethod = JavaMethodSignature.mainMethodOfClass(em)
@@ -67,7 +70,7 @@ def get_args():
   p.add_argument('-J', '--jsonfile', help='CLE JSON output filename', 
                  required=False, type=str, default='yourSDGFile.clemap.json')
   return p.parse_args()
-  
+
 if __name__ == '__main__':
   args   = get_args()
   print('Options selected:')
@@ -80,40 +83,19 @@ if __name__ == '__main__':
   if args.json: writeCLE(cles, args.jsonfile)
   print('SDG Done\n')
 
+  # XXX: modify below to generate input for constraint solver
+  clabels = list([q['clelabel'] for q in cles])
   for y in sorted(set(sdg.vertexSet()),key=lambda x: x.getId()):
-    k = str(y.getKind().toString())
-    i = str(y.getId())
-    l = str(y.getLabel())
-    for x in prog.getMiscAnnotations(y):
-      a = str(x.getType().getName())
-      print(k,i,l,a)
+    kind  = str(y.getKind().toString())
+    nid   = str(y.getId())
+    label = str(y.getLabel())
+    oper  = str(y.getOperation())
+    edges = sorted([(str(e.getKind().toString()),str(e.getTarget().getId())) for e in sdg.outgoingEdgesOf(y)])
+    anns  = cleAnnotationsForNode(y, prog, clabels)
 
-'''
-  for y in sorted(set(sdg.vertexSet()),key=lambda x: x.getId()):
-    k = str(y.getKind().toString())
-    b = str(y.getBytecodeName()).lstrip('L')
-    if k == 'ENTR':
-      cl = str(y.getClassLoader())
-      if cl == 'Application':
-        print(k,y,b)
-    elif (k == 'NORM'):
-      o = str(y.getOperation())
-      l = str(y.getLabel())
-      if(o == 'compound' and 'field' in l):
-        cnm,fld = b.rsplit('.',1)
-        cnm = cnm.replace('/','.')
-        print(k,y,cnm,fld)
-        try:
-          cls = Class.forName(cnm)
-          ff = None
-          try: ff  = cls.getField(fld)
-          except: pass
-          if ff is None: 
-            try: ff  = cls.getField(fld)
-            except: pass
-          if ff is not None: print(ff)
-        except:
-          continue
+    if kind == 'ENTR':
+      print(kind,nid,label,anns,edges)
+    elif kind == 'NORM' and oper == 'compound' and 'field' in label:
+      print(kind,nid,label,anns,edges)
     else:
-      continue
-'''
+      print(kind,nid,label,anns,edges)
