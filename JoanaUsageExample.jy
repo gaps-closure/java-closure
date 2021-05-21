@@ -94,12 +94,11 @@ if __name__ == '__main__':
     nid   = str(y.getId())
     label = str(y.getLabel())
     oper  = str(y.getOperation())
+    anns  = cleAnnotationsForNode(y, prog, clabels)
 
     nkind = kind + '_' + oper
     if not nkind in nodes: nodes[nkind] = []
     nodes[nkind].append((nid,label,anns))
-
-    anns  = cleAnnotationsForNode(y, prog, clabels)
 
     for e in sdg.outgoingEdgesOf(y): 
       ekind = str(e.getKind().toString())
