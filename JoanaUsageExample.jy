@@ -1,5 +1,6 @@
 from json                                   import loads,dump
 from argparse                               import ArgumentParser
+from pprint                                 import PrettyPrinter
 
 from java.lang                              import Class
 from java.lang                              import System
@@ -83,19 +84,28 @@ if __name__ == '__main__':
   if args.json: writeCLE(cles, args.jsonfile)
   print('SDG Done\n')
 
-  # XXX: modify below to generate input for constraint solver
   clabels = list([q['clelabel'] for q in cles])
+  nodes   = {}
+  edges   = {}
+ 
+  # XXX: modify below to generate input for constraint solver
   for y in sorted(set(sdg.vertexSet()),key=lambda x: x.getId()):
     kind  = str(y.getKind().toString())
     nid   = str(y.getId())
     label = str(y.getLabel())
     oper  = str(y.getOperation())
-    edges = sorted([(str(e.getKind().toString()),str(e.getTarget().getId())) for e in sdg.outgoingEdgesOf(y)])
+
+    nkind = kind + '_' + oper
+    if not nkind in nodes: nodes[nkind] = []
+    nodes[nkind].append((nid,label,anns))
+
     anns  = cleAnnotationsForNode(y, prog, clabels)
 
-    if kind == 'ENTR':
-      print(kind,nid,label,anns,edges)
-    elif kind == 'NORM' and oper == 'compound' and 'field' in label:
-      print(kind,nid,label,anns,edges)
-    else:
-      print(kind,nid,label,anns,edges)
+    for e in sdg.outgoingEdgesOf(y): 
+      ekind = str(e.getKind().toString())
+      if not ekind in edges: edges[ekind] = []
+      edges[ekind].append((nid,str(e.getTarget().getId())))
+
+  pp = PrettyPrinter(indent=2)
+  pp.pprint(nodes)
+  pp.pprint(edges)
