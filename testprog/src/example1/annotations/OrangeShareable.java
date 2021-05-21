@@ -22,3 +22,4 @@ import com.peratonlabs.closure.testprog.example1.annotations.Cledef;
                 "               ]" + 
                 "            }")
 public @interface OrangeShareable {}
+

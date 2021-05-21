@@ -67,7 +67,7 @@ java -cp $CLASSPATH org.python.util.jython JoanaUsageExample.jy \
   -e 'com.peratonlabs.closure.testprog.example1.Example1' \
   -p -P 'out.pdg' \
   -d -D 'out.dot' \
-  -J 'out.clemap.json' 
+  -j -J 'out.clemap.json' 
 
 # Launch the viewer, open the pdg file, and interact
 java -cp $CLASSPATH edu.kit.joana.ui.ifc.sdg.graphviewer.GraphViewer 

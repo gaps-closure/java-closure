@@ -14,35 +14,32 @@ from edu.kit.joana.util                     import Stubs
 from edu.kit.joana.wala.core.SDGBuilder     import PointsToPrecision
 from edu.kit.joana.wala.core.SDGBuilder     import ExceptionAnalysis
 from edu.kit.joana.ifc.sdg.io.dot           import JoanaGraph2Dot
-
-from java.util                              import Enumeration;
-from java.util.jar                          import JarEntry;
 from java.util.jar                          import JarFile;
 
-def getClasses(cp):
-  for e in JarFile(cp).entries():
-    if e.getName().endswith('.class'):
-      cnm = e.getName().replace('/','.').replace('.class','')
-      try:                   
-        yield cnm,Class.forName(cnm)
-      except Exception as e: 
-        print('Error getting class ' + cnm + ':' + str(e))
+def writePDG(sdg, pdgFile): 
+  SDGSerializer.toPDGFormat(sdg, FileOutputStream(pdgFile))
 
-def dumpCLE(cp, clefile):
+def writeDOT(sdg, dotFile): 
+  JoanaGraph2Dot.writeDotToOutputStream(sdg, FileOutputStream(dotFile))
+
+def writeCLE(cles, jsonFile): 
+  with open(args.jsonfile,'w') as of: dump(cles, of, indent=2, sort_keys=True)
+
+def getClasses(cp):
+  for cnm in [x.getName().replace('/','.').replace('.class','') for x in JarFile(cp).entries() if x.getName().endswith('.class')]:
+    try:                   yield cnm,Class.forName(cnm)
+    except Exception as e: print('Error getting class ' + cnm + ':' + str(e))
+
+def collectCLE(cp):
   cles = []
   for cnm,cls in getClasses(cp):
     if cls.isAnnotation():
-      for x in cls.getDeclaredAnnotations():
-        if x.annotationType().getName().endswith('Cledef'): 
-          try:
-            j = loads(x.clejson())
-            cles.append(dict(clelabel=cnm,clejson=j))
-          except Exception as e:
-            print('CLE JSON failed for ' + x.toString())
-  with open(clefile,'w') as of: dump(cles, of, indent=2, sort_keys=True)
-  print('CLEJSON Generated\n')
+      for y in [x for x in cls.getDeclaredAnnotations() if x.annotationType().getName().endswith('Cledef')]: 
+        try:                   cles.append(dict(clelabel=cnm,clejson=loads(y.clejson())))
+        except Exception as e: print('CLE JSON failed for ' + y.toString())
+  return cles
 
-def makeSDG(cp, em, pdg=None, dot=None):
+def makeSDG(cp, em):
   classPath   = cp
   entryMethod = JavaMethodSignature.mainMethodOfClass(em)
   config      = SDGConfig(classPath, entryMethod.toBCString(), Stubs.JRE_15)
@@ -51,12 +48,6 @@ def makeSDG(cp, em, pdg=None, dot=None):
   config.setPointsToPrecision(PointsToPrecision.INSTANCE_BASED)
   config.setExceptionAnalysis(ExceptionAnalysis.INTERPROC)
   program = SDGProgram.createSDGProgram(config, System.out, NullProgressMonitor())
-  if pdg is not None:
-    SDGSerializer.toPDGFormat(program.getSDG(), FileOutputStream(pdg))
-    print('PDG Generated\n')
-  if dot is not None:
-    JoanaGraph2Dot.writeDotToOutputStream(program.getSDG(), FileOutputStream(dot))
-    print('DOT Generated\n')
   return program
 
 def get_args():
@@ -71,6 +62,8 @@ def get_args():
                  default=False, action='store_true') 
   p.add_argument('-D', '--dotfile', help='DOT filename',
                  required=False, type=str, default='yourSDGFile.dot')
+  p.add_argument('-j', '--json',help='Dump CLE JSON',
+                 default=False, action='store_true') 
   p.add_argument('-J', '--jsonfile', help='CLE JSON output filename', 
                  required=False, type=str, default='yourSDGFile.clemap.json')
   return p.parse_args()
@@ -79,7 +72,48 @@ if __name__ == '__main__':
   args   = get_args()
   print('Options selected:')
   for x in sorted(vars(args).items()): print('  %s: %s' % x)
-  pf = args.pdgfile if args.pdg else None
-  df = args.dotfile if args.dot else None
-  makeSDG(args.clpath, args.entrymethod, pdg=pf, dot=df)
-  dumpCLE(args.clpath, args.jsonfile)
+  prog = makeSDG(args.clpath, args.entrymethod)
+  sdg  = prog.getSDG()
+  cles = collectCLE(args.clpath)
+  if args.pdg:  writePDG(sdg, args.pdgfile)
+  if args.dot:  writeDOT(sdg, args.dotfile)
+  if args.json: writeCLE(cles, args.jsonfile)
+  print('SDG Done\n')
+
+  for y in sorted(set(sdg.vertexSet()),key=lambda x: x.getId()):
+    k = str(y.getKind().toString())
+    i = str(y.getId())
+    l = str(y.getLabel())
+    for x in prog.getMiscAnnotations(y):
+      a = str(x.getType().getName())
+      print(k,i,l,a)
+
+'''
+  for y in sorted(set(sdg.vertexSet()),key=lambda x: x.getId()):
+    k = str(y.getKind().toString())
+    b = str(y.getBytecodeName()).lstrip('L')
+    if k == 'ENTR':
+      cl = str(y.getClassLoader())
+      if cl == 'Application':
+        print(k,y,b)
+    elif (k == 'NORM'):
+      o = str(y.getOperation())
+      l = str(y.getLabel())
+      if(o == 'compound' and 'field' in l):
+        cnm,fld = b.rsplit('.',1)
+        cnm = cnm.replace('/','.')
+        print(k,y,cnm,fld)
+        try:
+          cls = Class.forName(cnm)
+          ff = None
+          try: ff  = cls.getField(fld)
+          except: pass
+          if ff is None: 
+            try: ff  = cls.getField(fld)
+            except: pass
+          if ff is not None: print(ff)
+        except:
+          continue
+    else:
+      continue
+'''
