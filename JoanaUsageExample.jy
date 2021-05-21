@@ -87,6 +87,7 @@ if __name__ == '__main__':
   clabels = list([q['clelabel'] for q in cles])
   nodes   = {}
   edges   = {}
+  anns    = {}
  
   # XXX: modify below to generate input for constraint solver
   for y in sorted(set(sdg.vertexSet()),key=lambda x: x.getId()):
@@ -94,11 +95,13 @@ if __name__ == '__main__':
     nid   = str(y.getId())
     label = str(y.getLabel())
     oper  = str(y.getOperation())
-    anns  = cleAnnotationsForNode(y, prog, clabels)
 
     nkind = kind + '_' + oper
     if not nkind in nodes: nodes[nkind] = []
-    nodes[nkind].append((nid,label,anns))
+    nodes[nkind].append((nid,label))
+
+    myann = cleAnnotationsForNode(y, prog, clabels)
+    if len(myann) > 0: anns[nid] = myann 
 
     for e in sdg.outgoingEdgesOf(y): 
       ekind = str(e.getKind().toString())
@@ -108,3 +111,4 @@ if __name__ == '__main__':
   pp = PrettyPrinter(indent=2)
   pp.pprint(nodes)
   pp.pprint(edges)
+  pp.pprint(anns)
