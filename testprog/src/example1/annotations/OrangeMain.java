@@ -7,19 +7,22 @@ import java.lang.annotation.Target;
 
 import com.peratonlabs.closure.testprog.example1.annotations.Cledef;
  
-@Target(ElementType.FIELD)
+@Target(ElementType.METHOD)
 @Retention(RetentionPolicy.RUNTIME)
 @Cledef(clejson = "{" + 
                   "  \"level\":\"orange\"," + 
                   "  \"cdf\":[" + 
                   "    {" + 
-                  "      \"remotelevel\":\"purple\"," + 
-                  "      \"direction\":\"egress\"," + 
+                  "      \"remotelevel\":\"orange\"," + 
+                  "      \"direction\":\"bidirectional\"," + 
                   "      \"guarddirective\":{" + 
                   "        \"operation\":\"allow\"" + 
-                  "      }" + 
+                  "      }," + 
+                  "      \"argtaints\":[]," +
+                  "      \"rettaints\":[]," +
+                  "      \"codtaints\":[\"com.peratonlabs.closure.testprog.example1.annotations.OrangeShareable\"]" +
                   "    }" + 
-                  "  ]" + 
+                  "  ]" +
                   "}")
-public @interface OrangeShareable {}
+public @interface OrangeMain {}
 

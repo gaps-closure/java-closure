@@ -1,24 +1,26 @@
 package com.peratonlabs.closure.testprog.example1;
 
+import com.peratonlabs.closure.testprog.example1.Extra;
 import com.peratonlabs.closure.testprog.example1.annotations.*;
 
 public class Example1 {
   @OrangeShareable
-  private int valueA;
+  public static int myConstant = 777;
 
-  @OrangeShareable
-  public int getA() {
-    return this.valueA; 
+  private Extra extra;
+
+  public int getValue() {
+    return this.extra.getValue();
   }
 
-  @OrangeShareable
   public Example1() {
-    valueA = 42;
+    this.extra = new Extra();
   }
 
+  @OrangeMain
   public static void main(String[] args) {
-    @OrangeShareable
     Example1 e = new Example1();
-    System.out.println("Hello Example 1!" + e.getA());
+    System.out.println("Hello Example 1: " + e.getValue());
   }
 }
+
