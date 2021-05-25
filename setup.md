@@ -28,6 +28,9 @@ git submodule update
 # Or copy the edited file
 mv setup_deps setup_deps.orig
 cp ../setup_deps .
+# Requires cleanup of /tmp/smoke_main
+sudo rm /tmp/smoke_main
+# continue to run setup_deps
 ./setup_deps 
 
 # Force ant to use java 1.8, JOANA really needs this version
