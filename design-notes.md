@@ -109,3 +109,12 @@ extra <- NULL
  the other side the original version 
 * Need to be worked out in more detail 
  
+## A better alternative to resolve generics and avoid changes to source code (only Aspects)
+
+* There is no Shadow class as such.
+* There will be a copy of the class on each side
+* On the side to which the class is assigned, handlers will be generated
+* On all other enclaves the class will be modified (into a shadow) using an aspect that wraps accesses to all fields and methods with around.
+* The aspect will replace allowed accesses with RPCs and deny the rest with a violation Exception.
+
+
