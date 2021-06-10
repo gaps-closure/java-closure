@@ -23,97 +23,53 @@
  
 ## Autogeneration and Refactoring
 
-* Replace method and constructor calls with RPC using aspects
-* Replace local method invocation with RPC
-* Generate main plus code for RPC handling on remote side
+* Replace method and constructor calls with RPC using aspects -- could be AIDL, CLOSURE HAL, or other
+* Generate main class plus code for RPC handling on remote side
 * Generate code for un/marshalling and serialization which will be invoked by the RPC call and handler
+* Filtering and access violation checks
 * DFDL of cross-domain datatypes
 * DAGR for cross-domain rules
 
 ## Aspect Design and Paritioning Scheme/Glue
 
-* Do additional checks in constructor
-  - For classes assigned to an enclave, we may need to check instances are created only in the assigned enclave
+* Create a copy of the annotated code (that passed conflict analyzer checks) without modifications for each enclave
+* All behavior modifications and new functionality will be introduced through aspects
+* Autogenerate context which will specify the enclave, e.g., CLOSUREContext.myEnclave()
 
-* Wrap constructor call into RPC
-  - For constructor in cut, create aspect that will replace it with the constructor for a corresponding shadow object
-  - This shadow's constructor must choose and ID and have the remote side cosntruct the object and associate with the ID
-  - Shadow must also have a finalize method that will tell the remote side to release reference to the object
-  - Shadow must "implement" (RPC-wrap) declared and inherited methods (including polymorphic forms) of class being shadowed if those
-    methods can be called cross-domain
-  - For now, if a constructor is in the cut, we may need to force all subclasses to be on the same side
+* For each class that is assigned to a different enclave
+  - create a pointcut that traps constructor and method _calls_ and replaces them with RPC
+  - create a pointcut that traps constructor and method _executions_ calls and generates a violation exception (execution must happen on remote side)
+  - create a pointcut that traps all field accesses and generates a violation exception (field access must happen remotely)
+  - developer must refactor field access using setters and getters to ensure cross-domain RPC
 
-```
-// -- UNPARTITIONED
-extra <- obj1 // Extra()
-extra <- NULL
-// obj1 can be garbage collected
+* new():
+  - Upon instantiation, the aspect on caller side generates an ID, and sends it remote side for object creation, and stores the ID
+    association with local ("shadow") object
+  - The RPC handler on the callee side instantiates the object and maintains an association with the caller provied ID 
 
-// .........................
-// -- PARTITIONED
+* finalize():
+  - the aspect on caller side traps the finalize (on the shadow object) and sends the ID to the remote side 
+  - the handler on calee side must release its references to the actual object corresponding to the ID
 
-extra <- obj1 // ExtraShadow()  Shadow<Extra>()
-// ExtraShadow constructor has ID XX, calls RPC to have Extra() constructed on remote side and sends XX
-// Remote constructs a new Extra() instance Y1, and maintains a hashmap XX <=> Y1
-// any few future method requests can reference XX and can be dispatched to Y1
-extra <- NULL
-// ExtraShadow is garbage collected, and its finalize method will be called
-// finalize method calls an RPC releasing XX 
-// Remote removes XX <=> Y1 reference
-// THis will cause Y1 to be garbage collected on remote side
-```
-* Wrap method call in RPC inside shadow's method
-  - replace local method call with RPC 
-  - marshall ID and input params into message and send
-  - receive response and unmarshall back into local parameters and return value
+* method invocations (both declared and inherited):
+  - the aspect on caller side must send the ID, the methodName, and the arguments in an RPC to the remote side (after marshalling
+    and serialization); if not oneway, caller should wait for a response, and desrialize/unmarshall response into output parameters
+    and return value -- caller must generate a request ID and check response matches request
+    -- based on annotation, ought to also handle distribution issues such as retries upon delay/loss, deduplication, subject to 
+       function semantics such as idempotency or caching
+  - the handler on the callee side should deserialize/unmarshall, lookup the object from the ID, invoke the method, marshall/serialize
+    the output parameters and return value
+  - for any methods on the object that are not in the cut, the caller side must trap and generate exception
 
-```
- class Foo(){
-  public int methodA(int k, ArrayList<String> j) {
-    j.add(0, "Brilliant!");
-    return 29;
-  }
- }
+* The caller side aspects for new(), finalize(), and method invocation, should call an optional access-control/filter stub 
+  - this function is normally done by CDG, but for signal app, we will generate this logic later
+    (check needs <mux,sec,typ> tag, caller level, callee level in addition to object and stub must be calle with this info)
 
- class FooShadow {
-  // provide constructor which will do RPC
-  // provide finalize which will do RPC
-  // provide methodA
-  public int methodA(int k, ArrayList<String> j) {
-    // marshall/serialize ID, k, and j and send to other side
-    // receive return value, and j from pther side
-    // deserialize/unmarshall received values into k, j, and return
-  }
-  
-  }
-```
-
-* Create remote main with handler threads
+* Additional support classes to create remote main with handler threads
   - Maintain map of remote object ID to local memory reference
   - handle incoming messages and dispatch methods with (unmarshalled) parameters to relevant object
  
-* Software content filtering (e.g., Signal app)
+* Additional support calles for software content filtering (e.g., Signal app)
   - Based on CLE JSON do allow, block, redact processing 
   - Make it configurable on whether RPC call or RPC handler does the filtering (egress vs. ingress vs. neither)
-
-* Handling generic containers (which may contain an object that will need to be remote) is TBD ...
-
-
-## Alternative Scheme -- complicated, but may help with generics
-
-* Create ExtraShadow to be identical to Extra, then wrap all methods and fields of Extra to call ExtraShadow
-* Copy Extra's label to ExtraShadow and modify Extra's label to change it's level to caller side level
-* Local side has modified Extra, remote side has ExtraShadow as well as Extra
-* Now ArrayList<Extra> can be on both sides, on one side it will use the Aspect modified version of Extra and on
- the other side the original version 
-* Need to be worked out in more detail 
- 
-## A better alternative to resolve generics and avoid changes to source code (only Aspects)
-
-* There is no Shadow class as such.
-* There will be a copy of the class on each side
-* On the side to which the class is assigned, handlers will be generated
-* On all other enclaves the class will be modified (into a shadow) using an aspect that wraps accesses to all fields and methods with around.
-* The aspect will replace allowed accesses with RPCs and deny the rest with a violation Exception.
-
 
