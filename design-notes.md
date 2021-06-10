@@ -1,6 +1,5 @@
 # CLOSURE Workflow for Java
 
-
 ## Annotation
 
 * The CDS developer using CLOSURE needs to know `com.peratonlabs.closure.cle.Cledef` as well as the CLE-JSON schema
