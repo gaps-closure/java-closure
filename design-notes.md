@@ -16,6 +16,25 @@
      -- every application class is assigned to a unique enclave or to a library common to all enclaves
      -- identifies methods and constructors that are in the cross-domain cut
 
+```
+"assignment": [
+   { "class" : "A",
+     "enclave": "Purple",
+   },
+     ...
+ ],
+"cut": [
+  { "method-signature" : "methodFoo(type1 arg1,...)",
+    "caller-level" : [ "Orange", "Red" ],
+    "caller-type" : [ "Foo", "Bar"],
+    "callee-level": [ "Purple" ]
+    "callee-type": [ "A" ]
+  }
+  // need to know class or instance methods, each parameter needs to be in, out or in-out.
+  // need to know size and max size of a collection.
+]
+```
+
 ## GEDL Program Analyzer
 
 * For each method in the cut, for each parameter infer direction and (collection) size; also infer structure of the object via reflection
